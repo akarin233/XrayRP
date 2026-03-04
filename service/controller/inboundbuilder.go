@@ -106,7 +106,9 @@ func InboundBuilder(config *Config, nodeInfo *api.NodeInfo, tag string) (*core.I
 
 		proxySetting, _ := proxySetting.(*conf.ShadowsocksServerConfig)
 		b := make([]byte, 32)
-		rand.Read(b)
+		if _, err := rand.Read(b); err != nil {
+			return nil, fmt.Errorf("failed to generate random password: %w", err)
+		}
 		randPasswd := hex.EncodeToString(b)
 		if C.Contains(shadowaead_2022.List, cipher) {
 			proxySetting.Users = append(proxySetting.Users, &conf.ShadowsocksUserConfig{
@@ -183,8 +185,86 @@ func InboundBuilder(config *Config, nodeInfo *api.NodeInfo, tag string) (*core.I
 		streamSetting.HTTPUPGRADESettings = httpupgradeSettings
 	case "splithttp", "xhttp":
 		splithttpSetting := &conf.SplitHTTPConfig{
-			Path: nodeInfo.Path,
-			Host: nodeInfo.Host,
+			Path:                nodeInfo.Path,
+			Host:                nodeInfo.Host,
+			Mode:                nodeInfo.XHTTPMode,
+			Extra:               nodeInfo.XHTTPExtra,
+			XPaddingObfsMode:    nodeInfo.XPaddingObfsMode,
+			XPaddingKey:         nodeInfo.XPaddingKey,
+			XPaddingHeader:      nodeInfo.XPaddingHeader,
+			XPaddingPlacement:   nodeInfo.XPaddingPlacement,
+			XPaddingMethod:      nodeInfo.XPaddingMethod,
+			UplinkHTTPMethod:    nodeInfo.UplinkHTTPMethod,
+			SessionPlacement:    nodeInfo.SessionPlacement,
+			SessionKey:          nodeInfo.SessionKey,
+			SeqPlacement:        nodeInfo.SeqPlacement,
+			SeqKey:              nodeInfo.SeqKey,
+			UplinkDataPlacement: nodeInfo.UplinkDataPlacement,
+			UplinkDataKey:       nodeInfo.UplinkDataKey,
+			UplinkChunkSize:     nodeInfo.UplinkChunkSize,
+			NoGRPCHeader:        nodeInfo.NoGRPCHeader,
+			NoSSEHeader:         nodeInfo.NoSSEHeader,
+			ScMaxBufferedPosts:  nodeInfo.ScMaxBufferedPosts,
+			Headers:             nodeInfo.Headers,
+		}
+		if nodeInfo.XPaddingBytes != nil {
+			splithttpSetting.XPaddingBytes = conf.Int32Range{
+				From: nodeInfo.XPaddingBytes[0],
+				To:   nodeInfo.XPaddingBytes[1],
+			}
+		}
+		if nodeInfo.ScMaxEachPostBytes != nil {
+			splithttpSetting.ScMaxEachPostBytes = conf.Int32Range{
+				From: nodeInfo.ScMaxEachPostBytes[0],
+				To:   nodeInfo.ScMaxEachPostBytes[1],
+			}
+		}
+		if nodeInfo.ScMinPostsIntervalMs != nil {
+			splithttpSetting.ScMinPostsIntervalMs = conf.Int32Range{
+				From: nodeInfo.ScMinPostsIntervalMs[0],
+				To:   nodeInfo.ScMinPostsIntervalMs[1],
+			}
+		}
+		if nodeInfo.ScStreamUpServerSecs != nil {
+			splithttpSetting.ScStreamUpServerSecs = conf.Int32Range{
+				From: nodeInfo.ScStreamUpServerSecs[0],
+				To:   nodeInfo.ScStreamUpServerSecs[1],
+			}
+		}
+		if nodeInfo.XmuxMaxConcurrency != nil || nodeInfo.XmuxMaxConnections != nil {
+			splithttpSetting.Xmux = conf.XmuxConfig{
+				HKeepAlivePeriod: nodeInfo.XmuxHKeepAlivePeriod,
+			}
+			if nodeInfo.XmuxMaxConcurrency != nil {
+				splithttpSetting.Xmux.MaxConcurrency = conf.Int32Range{
+					From: nodeInfo.XmuxMaxConcurrency[0],
+					To:   nodeInfo.XmuxMaxConcurrency[1],
+				}
+			}
+			if nodeInfo.XmuxMaxConnections != nil {
+				splithttpSetting.Xmux.MaxConnections = conf.Int32Range{
+					From: nodeInfo.XmuxMaxConnections[0],
+					To:   nodeInfo.XmuxMaxConnections[1],
+				}
+			}
+			if nodeInfo.XmuxCMaxReuseTimes != nil {
+				splithttpSetting.Xmux.CMaxReuseTimes = conf.Int32Range{
+					From: nodeInfo.XmuxCMaxReuseTimes[0],
+					To:   nodeInfo.XmuxCMaxReuseTimes[1],
+				}
+			}
+			if nodeInfo.XmuxHMaxRequestTimes != nil {
+				splithttpSetting.Xmux.HMaxRequestTimes = conf.Int32Range{
+					From: nodeInfo.XmuxHMaxRequestTimes[0],
+					To:   nodeInfo.XmuxHMaxRequestTimes[1],
+				}
+			}
+			if nodeInfo.XmuxHMaxReusableSecs != nil {
+				splithttpSetting.Xmux.HMaxReusableSecs = conf.Int32Range{
+					From: nodeInfo.XmuxHMaxReusableSecs[0],
+					To:   nodeInfo.XmuxHMaxReusableSecs[1],
+				}
+			}
 		}
 		streamSetting.SplitHTTPSettings = splithttpSetting
 	}
@@ -199,7 +279,7 @@ func InboundBuilder(config *Config, nodeInfo *api.NodeInfo, tag string) (*core.I
 			isREALITY = true
 			streamSetting.Security = "reality"
 			streamSetting.REALITYSettings = &conf.REALITYConfig{
-				Show:         true,
+				Show:         r.Show,
 				Dest:         []byte(`"` + r.Dest + `"`),
 				Xver:         r.ProxyProtocolVer,
 				ServerNames:  r.ServerNames,

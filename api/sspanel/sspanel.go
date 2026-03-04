@@ -96,25 +96,25 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 		// open the file
 		file, err := os.Open(path)
 
-		defer func(file *os.File) {
-			err := file.Close()
-			if err != nil {
-				log.Printf("Error when closing file: %s", err)
-			}
-		}(file)
 		// handle errors while opening
 		if err != nil {
 			log.Printf("Error when opening file: %s", err)
 			return LocalRuleList
 		}
+		defer file.Close()
 
 		fileScanner := bufio.NewScanner(file)
 
 		// read line by line
 		for fileScanner.Scan() {
+			pattern, err := regexp.Compile(fileScanner.Text())
+			if err != nil {
+				log.Printf("Invalid rule regex: %s, skipping", err)
+				continue
+			}
 			LocalRuleList = append(LocalRuleList, api.DetectRule{
 				ID:      -1,
-				Pattern: regexp.MustCompile(fileScanner.Text()),
+				Pattern: pattern,
 			})
 		}
 		// handle first encountered error while reading
@@ -129,7 +129,7 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 
 // Describe return a description of the client
 func (c *APIClient) Describe() api.ClientInfo {
-	return api.ClientInfo{APIHost: c.APIHost, NodeID: c.NodeID, Key: c.Key, NodeType: c.NodeType}
+	return api.ClientInfo{APIHost: c.APIHost, NodeID: c.NodeID, Key: "", NodeType: c.NodeType}
 }
 
 // Debug set the client debug for client
@@ -146,7 +146,7 @@ func (c *APIClient) parseResponse(res *resty.Response, path string, err error) (
 		return nil, fmt.Errorf("request %s failed: %s", c.assembleURL(path), err)
 	}
 
-	if res.StatusCode() > 400 {
+	if res.StatusCode() >= 400 {
 		body := res.Body()
 		return nil, fmt.Errorf("request %s failed: %s, %v", c.assembleURL(path), string(body), err)
 	}
@@ -397,9 +397,14 @@ func (c *APIClient) GetNodeRule() (*[]api.DetectRule, error) {
 	}
 
 	for _, r := range *ruleListResponse {
+		pattern, err := regexp.Compile(r.Content)
+		if err != nil {
+			log.Printf("Invalid rule regex from panel (ID=%d): %s, skipping", r.ID, err)
+			continue
+		}
 		ruleList = append(ruleList, api.DetectRule{
 			ID:      r.ID,
-			Pattern: regexp.MustCompile(r.Content),
+			Pattern: pattern,
 		})
 	}
 	return &ruleList, nil
@@ -889,6 +894,25 @@ func (c *APIClient) ParseSSPanelNodeInfo(nodeInfoResponse *NodeInfoResponse) (*a
 		REALITYConfig:       realityConfig,
 		AcceptProxyProtocol: nodeConfig.EnableProxyProtocol,
 		ProxyProtocolVer:    nodeConfig.ProxyProtocolVer,
+		// XHTTP bypass CDN fields
+		XHTTPMode:           nodeConfig.XHTTPMode,
+		XHTTPExtra:          nodeConfig.XHTTPExtra,
+		XPaddingBytes:       nodeConfig.XPaddingBytes,
+		XPaddingObfsMode:    nodeConfig.XPaddingObfsMode,
+		XPaddingKey:         nodeConfig.XPaddingKey,
+		XPaddingHeader:      nodeConfig.XPaddingHeader,
+		XPaddingPlacement:   nodeConfig.XPaddingPlacement,
+		XPaddingMethod:      nodeConfig.XPaddingMethod,
+		UplinkHTTPMethod:    nodeConfig.UplinkHTTPMethod,
+		SessionPlacement:    nodeConfig.SessionPlacement,
+		SessionKey:          nodeConfig.SessionKey,
+		SeqPlacement:        nodeConfig.SeqPlacement,
+		SeqKey:              nodeConfig.SeqKey,
+		UplinkDataPlacement: nodeConfig.UplinkDataPlacement,
+		UplinkDataKey:       nodeConfig.UplinkDataKey,
+		UplinkChunkSize:     nodeConfig.UplinkChunkSize,
+		NoGRPCHeader:        nodeConfig.NoGRPCHeader,
+		NoSSEHeader:         nodeConfig.NoSSEHeader,
 	}
 
 	return nodeInfo, nil

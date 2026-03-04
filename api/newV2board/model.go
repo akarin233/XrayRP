@@ -44,11 +44,29 @@ type shadowsocks struct {
 type v2ray struct {
 	Network         string `json:"network"`
 	NetworkSettings struct {
-		Path        string           `json:"path"`
-		Host        string           `json:"host"`
-		Headers     *json.RawMessage `json:"headers"`
-		ServiceName string           `json:"serviceName"`
-		Header      *json.RawMessage `json:"header"`
+		Path                string           `json:"path"`
+		Host                string           `json:"host"`
+		Headers             *json.RawMessage `json:"headers"`
+		ServiceName         string           `json:"serviceName"`
+		Header              *json.RawMessage `json:"header"`
+		Mode                string           `json:"mode"`
+		Extra               json.RawMessage  `json:"extra"`
+		XPaddingBytes       *[2]int32        `json:"xPaddingBytes"`
+		XPaddingObfsMode    bool             `json:"xPaddingObfsMode"`
+		XPaddingKey         string           `json:"xPaddingKey"`
+		XPaddingHeader      string           `json:"xPaddingHeader"`
+		XPaddingPlacement   string           `json:"xPaddingPlacement"`
+		XPaddingMethod      string           `json:"xPaddingMethod"`
+		UplinkHTTPMethod    string           `json:"uplinkHTTPMethod"`
+		SessionPlacement    string           `json:"sessionPlacement"`
+		SessionKey          string           `json:"sessionKey"`
+		SeqPlacement        string           `json:"seqPlacement"`
+		SeqKey              string           `json:"seqKey"`
+		UplinkDataPlacement string           `json:"uplinkDataPlacement"`
+		UplinkDataKey       string           `json:"uplinkDataKey"`
+		UplinkChunkSize     uint32           `json:"uplinkChunkSize"`
+		NoGRPCHeader        bool             `json:"noGRPCHeader"`
+		NoSSEHeader         bool             `json:"noSSEHeader"`
 	} `json:"networkSettings"`
 	VlessNetworkSettings struct {
 		Path        string           `json:"path"`

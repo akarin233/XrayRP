@@ -106,9 +106,14 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 
 		// read line by line
 		for fileScanner.Scan() {
+			pattern, err := regexp.Compile(fileScanner.Text())
+			if err != nil {
+				log.Printf("Invalid rule regex: %s, skipping", err)
+				continue
+			}
 			LocalRuleList = append(LocalRuleList, api.DetectRule{
 				ID:      -1,
-				Pattern: regexp.MustCompile(fileScanner.Text()),
+				Pattern: pattern,
 			})
 		}
 		// handle first encountered error while reading
@@ -123,7 +128,7 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 
 // Describe return a description of the client
 func (c *APIClient) Describe() api.ClientInfo {
-	return api.ClientInfo{APIHost: c.APIHost, NodeID: c.NodeID, Key: c.Key, NodeType: c.NodeType}
+	return api.ClientInfo{APIHost: c.APIHost, NodeID: c.NodeID, Key: "", NodeType: c.NodeType}
 }
 
 // GetXrayRCertConfig is not provided by newV2board; return nil to indicate absence.
@@ -305,9 +310,14 @@ func (c *APIClient) GetNodeRule() (*[]api.DetectRule, error) {
 
 	for i := range routes {
 		if routes[i].Action == "block" {
+			pattern, err := regexp.Compile(strings.Join(routes[i].Match, "|"))
+			if err != nil {
+				log.Printf("Invalid route rule regex (index=%d): %s, skipping", i, err)
+				continue
+			}
 			ruleList = append(ruleList, api.DetectRule{
 				ID:      i,
-				Pattern: regexp.MustCompile(strings.Join(routes[i].Match, "|")),
+				Pattern: pattern,
 			})
 		}
 	}
@@ -584,6 +594,25 @@ func (c *APIClient) parseV2rayNodeResponse(s *serverConfig) (*api.NodeInfo, erro
 		EnableREALITY:     enableREALITY,
 		REALITYConfig:     &realityConfig,
 		NameServerConfig:  s.parseDNSConfig(),
+		// XHTTP bypass CDN fields
+		XHTTPMode:           s.NetworkSettings.Mode,
+		XHTTPExtra:          s.NetworkSettings.Extra,
+		XPaddingBytes:       s.NetworkSettings.XPaddingBytes,
+		XPaddingObfsMode:    s.NetworkSettings.XPaddingObfsMode,
+		XPaddingKey:         s.NetworkSettings.XPaddingKey,
+		XPaddingHeader:      s.NetworkSettings.XPaddingHeader,
+		XPaddingPlacement:   s.NetworkSettings.XPaddingPlacement,
+		XPaddingMethod:      s.NetworkSettings.XPaddingMethod,
+		UplinkHTTPMethod:    s.NetworkSettings.UplinkHTTPMethod,
+		SessionPlacement:    s.NetworkSettings.SessionPlacement,
+		SessionKey:          s.NetworkSettings.SessionKey,
+		SeqPlacement:        s.NetworkSettings.SeqPlacement,
+		SeqKey:              s.NetworkSettings.SeqKey,
+		UplinkDataPlacement: s.NetworkSettings.UplinkDataPlacement,
+		UplinkDataKey:       s.NetworkSettings.UplinkDataKey,
+		UplinkChunkSize:     s.NetworkSettings.UplinkChunkSize,
+		NoGRPCHeader:        s.NetworkSettings.NoGRPCHeader,
+		NoSSEHeader:         s.NetworkSettings.NoSSEHeader,
 	}, nil
 }
 
