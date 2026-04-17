@@ -308,7 +308,7 @@ func InboundBuilder(config *Config, nodeInfo *api.NodeInfo, tag string) (*core.I
 			SeqKey:              nodeInfo.SeqKey,
 			UplinkDataPlacement: nodeInfo.UplinkDataPlacement,
 			UplinkDataKey:       nodeInfo.UplinkDataKey,
-			UplinkChunkSize:     nodeInfo.UplinkChunkSize,
+			UplinkChunkSize:     conf.Int32Range{From: int32(nodeInfo.UplinkChunkSize), To: int32(nodeInfo.UplinkChunkSize)},
 			NoGRPCHeader:        nodeInfo.NoGRPCHeader,
 			NoSSEHeader:         nodeInfo.NoSSEHeader,
 			ScMaxBufferedPosts:  nodeInfo.ScMaxBufferedPosts,
