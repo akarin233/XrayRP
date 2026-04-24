@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -369,50 +368,7 @@ func (c *APIClient) GetNodeRule() (*[]api.DetectRule, error) {
 }
 
 // ReportNodeStatus implements the API interface
-func (c *APIClient) ReportNodeStatus(nodeStatus *api.NodeStatus) (err error) {
-	path := "/api/v1/server/UniProxy/status"
-
-	memUsed := int(math.Round(nodeStatus.Mem))
-	diskUsed := int(math.Round(nodeStatus.Disk))
-	if memUsed < 0 {
-		memUsed = 0
-	}
-	if diskUsed < 0 {
-		diskUsed = 0
-	}
-	if memUsed > 100 {
-		memUsed = 100
-	}
-	if diskUsed > 100 {
-		diskUsed = 100
-	}
-
-	payload := map[string]any{
-		"cpu": nodeStatus.CPU,
-		"mem": map[string]int{
-			"total": 100,
-			"used":  memUsed,
-		},
-		"swap": map[string]int{
-			"total": 0,
-			"used":  0,
-		},
-		"disk": map[string]int{
-			"total": 100,
-			"used":  diskUsed,
-		},
-	}
-
-	res, err := c.client.R().
-		SetBody(payload).
-		ForceContentType("application/json").
-		Post(path)
-
-	_, err = c.parseResponse(res, path, err)
-	if err != nil {
-		return err
-	}
-
+func (c *APIClient) ReportNodeStatus(nodeStatus *api.NodeStatus) error {
 	return nil
 }
 
